@@ -15,11 +15,11 @@ import os
 import sys
 
 #24時間音楽を流すときの音楽
-musicdefaulturl = 'https://www.youtube.com/watch?v=e51dROrMSl8'
+musicdefaulturl = 'https://www.youtube.com/watch?v=SgEQrUIKJ6Y'
 #DiscordBotのトークン
-TOKEN = 'MTEzMzU5NDMxNTgxMDE0NDMwNg.GpDXeN.YQSvyDFU7I4wwXCXRdbwtLJp80N_nDXNXlxOZ8'
+TOKEN = 'MTI3NzE4Nzc3NDg5MzUyMjk3OA.Gx7fBk.Ls0NnGm80Ao0KLwlHq67DeQt05U7_4gdGt8224'
 #チャンネルID
-channel_id = 1133599794250657872
+channel_id = 1277188290121961586
 
 
 
