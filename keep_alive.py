@@ -75,5 +75,5 @@ def run():
     }
     StandaloneApplication(app, options).run()
 
-if __name__ == "__main__":
+def keep_alive():
     run()
