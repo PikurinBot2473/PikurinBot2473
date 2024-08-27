@@ -1,5 +1,4 @@
 from flask import Flask
-from threading import Thread
 import datetime
 from gunicorn.app.base import BaseApplication
 
@@ -76,6 +75,5 @@ def run():
     }
     StandaloneApplication(app, options).run()
 
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
+if __name__ == "__main__":
+    run()
