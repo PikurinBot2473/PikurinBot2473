@@ -2,14 +2,13 @@ from flask import Flask
 from threading import Thread
 import datetime
 from gunicorn.app.base import BaseApplication
-from gunicorn.six import iteritems
 
 app = Flask('')
 
 @app.route('/')
 def home():
     timenow = datetime.datetime.now() + datetime.timedelta(hours=9)
-        return f'''
+    return f'''
     <html>
     <head>
         <style>
@@ -62,9 +61,9 @@ class StandaloneApplication(BaseApplication):
         super(StandaloneApplication, self).__init__()
 
     def load_config(self):
-        config = {key: value for key, value in iteritems(self.options)
+        config = {key: value for key, value in self.options.items()
                   if key in self.cfg.settings and value is not None}
-        for key, value in iteritems(config):
+        for key, value in config.items():
             self.cfg.set(key.lower(), value)
 
     def load(self):
