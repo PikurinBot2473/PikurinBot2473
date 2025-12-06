@@ -9,16 +9,16 @@ import shlex
 import subprocess
 import logging
 import asyncio
-import yt_dlp
+import datetime
 import os
 import sys
 
-#24時間音楽を流すときの音楽
-musicdefaulturl = 'https://www.youtube.com/watch?v=SgEQrUIKJ6Y'
+audio_url = "https://www.dropbox.com/scl/fi/2ddc7tthdmel26nk97wgs/1-study-timer-60.mp3?rlkey=rlz51afwy8ls6ucxesdr7ulku&st=p5sigche&dl=1"
+
 #DiscordBotのトークン
-TOKEN = 'MTI3NzE4Nzc3NDg5MzUyMjk3OA.Gx7fBk.Ls0NnGm80Ao0KLwlHq67DeQt05U7_4gdGt8224'
+TOKEN = 'MTI3NzE4Nzc3NDg5MzUyMjk3OA.Ge22eo.YlUlQjm5eqB0kAMKmoLSNiVvRAraA-t2Xw46F0'
 #チャンネルID
-channel_id = 1277188290121961586
+channel_id = 1133599794250657872
 
 
 
@@ -26,178 +26,6 @@ intents=discord.Intents.all()
 intents.typing = False
 client = discord.Client(intents=intents)
 log = logging.getLogger(__name__)
-
-ytdl_format_options = {
-    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    'cookiefile': 'cookies.txt',
-    'format': 'm4a/bestaudio/best',
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'm4a',
-        'preferredquality': '192',
-    }],
-    'restrictfilenames': True,
-    'noplaylist': True,
-    'nocheckcertificate': True,
-    'ignoreerrors': False,
-    'logtostderr': False,
-    'quiet': True,
-    'no_warnings': True,
-    'default_search': 'ytsearch',
-    'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
-}
-ffmpeg_options = {
-    'before_options':
-    '-vn -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 20'
-}
-yt_dlp.utils.bug_reports_message = lambda: ''
-ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
-
-
-class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source, *, data, volume=1.0):
-        super().__init__(source, volume)
-
-        self.data = data
-        self.seconds = int(data.get('duration'))
-
-    @classmethod
-    async def from_url(cls, url, *, loop=None, stream=True):
-        loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-
-        if 'entries' in data:
-            # take first item from a playlist
-            data = data['entries'][0]
-
-        filename = data['url'] if stream else ytdl.prepare_filename(data)
-        return cls(OriginalFFmpegPCMAudio(filename, **ffmpeg_options), data=data, volume=1.0)
-
-
-
-
-class OriginalFFmpegPCMAudio(discord.FFmpegPCMAudio):
-    def __init__(self,
-                 source,
-                 *,
-                 executable='ffmpeg',
-                 pipe=False,
-                 stderr=None,
-                 before_options=None,
-                 options=None):
-        self.total_milliseconds = 0
-        self.source = source
-
-        super().__init__(source,
-                         executable=executable,
-                         pipe=pipe,
-                         stderr=stderr,
-                         before_options=before_options,
-                         options=options)
-
-    def wait_buffer(self):
-        self._stdout.peek(OpusEncoder.FRAME_SIZE)
-
-    def read(self):
-        ret = super().read()
-
-        if ret:
-            self.total_milliseconds += 20
-        return ret
-
-    def get_tootal_millisecond(self, seek_time):
-        if seek_time:
-            list = reversed([int(x) for x in seek_time.split(":")])
-            total = 0
-            for i, x in enumerate(list):
-                total += x * 3600 if i == 2 else x * 60 if i == 1 else x
-            return max(1000 * total, 0)
-        else:
-            raise Exception()
-
-    def rewind(self,
-               rewind_time,
-               *,
-               executable='ffmpeg',
-               pipe=False,
-               stderr=None,
-               before_options=None,
-               options=None):
-        seek_time = str(
-            int((self.total_milliseconds -
-                 self.get_tootal_millisecond(rewind_time)) / 1000))
-
-        self.seek(seek_time=seek_time,
-                  executable=executable,
-                  pipe=pipe,
-                  stderr=stderr,
-                  before_options=before_options,
-                  options=options)
-
-    def seek(self,
-             seek_time,
-             *,
-             executable='ffmpeg',
-             pipe=False,
-             stderr=None,
-             before_options=None,
-             options=None):
-        self.total_milliseconds = self.get_tootal_millisecond(seek_time)
-        proc = self._process
-        before_options = f"-ss {seek_time} " + before_options
-        args = []
-        subprocess_kwargs = {
-            'stdin': self.source if pipe else subprocess.DEVNULL,
-            'stderr': stderr
-        }
-
-        if isinstance(before_options, str):
-            args.extend(shlex.split(before_options))
-
-        args.append('-i')
-        args.append('-' if pipe else self.source)
-        args.extend(('-f', 's16le', '-ar', '48000', '-ac', '2', '-loglevel',
-                     'warning'))
-
-        if isinstance(options, str):
-            args.extend(shlex.split(options))
-
-        args.append('pipe:1')
-
-        args = [executable, *args]
-        kwargs = {'stdout': subprocess.PIPE}
-        kwargs.update(subprocess_kwargs)
-
-        self._process = self._spawn_process(args, **kwargs)
-        self._stdout = self._process.stdout
-        self.kill(proc)
-
-    def kill(self, proc):
-        if proc is None:
-            return
-
-        log.info('Preparing to terminate ffmpeg process %s.', proc.pid)
-
-        try:
-            proc.kill()
-        except Exception:
-            log.exception(
-                "Ignoring error attempting to kill ffmpeg process %s",
-                proc.pid)
-
-        if proc.poll() is None:
-            log.info(
-                'ffmpeg process %s has not terminated. Waiting to terminate...',
-                proc.pid)
-            proc.communicate()
-            log.info(
-                'ffmpeg process %s should have terminated with a return code of %s.',
-                proc.pid, proc.returncode)
-        else:
-            log.info(
-                'ffmpeg process %s successfully terminated with return code of %s.',
-                proc.pid, proc.returncode)
-
 
 
 @client.event
@@ -223,11 +51,9 @@ async def play_music(channel, guild, botlog):
             await asyncio.sleep(2)
         await channel.connect()
         await guild.change_voice_state(channel=guild.voice_client.channel, self_deaf=True)
-
-        player = await YTDLSource.from_url(musicdefaulturl, loop=client.loop)
-        seconds = player.seconds
-        audiotoplay = YTDLSource(player, data=player.data, volume=1.0)
-        guild.voice_client.play(audiotoplay)
+        print('VCに参加成功')
+        guild.voice_client.play(discord.FFmpegPCMAudio(audio_url, before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"))
+        print('play!')
     except Exception as e:
         print(e)
         try:
@@ -237,16 +63,12 @@ async def play_music(channel, guild, botlog):
         await botlog.channel.send('再起動します。')
         os.execv(sys.executable, ['python'] + sys.argv)
     
-
-    await asyncio.sleep(seconds)
     while True:
         if guild.voice_client:
             while guild.voice_client.is_playing():
-                await asyncio.sleep(3)
+                await asyncio.sleep(5)
             try:
-                player = await YTDLSource.from_url(musicdefaulturl, loop=client.loop)
-                audiotoplay = YTDLSource(player, data=player.data, volume=1.0)
-                guild.voice_client.play(audiotoplay)
+                guild.voice_client.play(discord.FFmpegPCMAudio(audio_url, before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"))
             except Exception as e:
                 print(e)
                 try:
