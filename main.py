@@ -18,7 +18,7 @@ audio_url = "https://www.dropbox.com/scl/fi/2ddc7tthdmel26nk97wgs/1-study-timer-
 #DiscordBotのトークン
 TOKEN = 'MTI3NzE4Nzc3NDg5MzUyMjk3OA.Ge22eo.YlUlQjm5eqB0kAMKmoLSNiVvRAraA-t2Xw46F0'
 #チャンネルID
-channel_id = 1133599794250657872
+channel_id = 1277188290121961586
 
 
 
