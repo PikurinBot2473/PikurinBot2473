@@ -1,6 +1,5 @@
 discord.py
 flask
-yt_dlp
 PyNaCl
 ffmpeg-python
 gunicorn
