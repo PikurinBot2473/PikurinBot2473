@@ -5,11 +5,11 @@ import logging
 import os
 import aiohttp
 
-AUDIO_URL = "https://github.com/PikurinBot24/PikurinMusic/releases/download/v1/audio.mp3"
+AUDIO_URL = "https://github.com/PikurinBot2473/PikurinBot2473/releases/download/v1/auido.mp3"
 AUDIO_FILE = "audio.mp3"
 
 TOKEN = os.environ["DISCORD_TOKEN"]
-CHANNEL_ID = 1133599794250657872
+CHANNEL_ID = 1277188290121961586
 
 intents = discord.Intents.all()
 intents.typing = False
